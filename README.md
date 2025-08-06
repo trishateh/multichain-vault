@@ -1,36 +1,183 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Multi-Chain Vault Frontend
 
-## Getting Started
+A modern Web3 frontend application that interacts with SimpleVault smart contracts deployed across multiple EVM chains, featuring multi-chain batch operations.
 
-First, run the development server:
+## 🚀 Features
+
+- **Multi-Wallet Support**: Connect with MetaMask, WalletConnect, and other popular wallets via RainbowKit
+- **Multi-Chain Dashboard**: View USDC balances across Sepolia and Sei Testnet
+- **Batch Operations**: Deposit funds across multiple chains in a single guided flow
+- **Real-time Updates**: Live transaction status and balance updates
+- **Responsive Design**: Mobile-first design with Tailwind CSS
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 14 with App Router
+- **Web3**: wagmi + viem for blockchain interactions
+- **Wallet Connection**: RainbowKit
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Form Handling**: React Hook Form + Zod validation
+- **Notifications**: react-hot-toast
+
+## 📦 Installation
+
+1. Clone the repository:
+
+```bash
+git clone <repository-url>
+cd vault-frontend
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Set up environment variables:
+
+```bash
+cp env.example .env.local
+```
+
+4. Update `.env.local` with your configuration:
+
+```
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+NEXT_PUBLIC_APP_ENV=development
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+## 🏃‍♂️ Running the Application
+
+### Development Mode
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Production Build
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🌐 Supported Networks
 
-## Learn More
+### Sepolia (Ethereum Testnet)
 
-To learn more about Next.js, take a look at the following resources:
+- **Chain ID**: 11155111
+- **RPC**: https://ethereum-sepolia-rpc.publicnode.com
+- **Vault Contract**: `0xaaaac415c0719cff6BAe3816FE244589442db46C`
+- **USDC Contract**: `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Sei Testnet
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Chain ID**: 1328
+- **RPC**: https://evm-rpc-testnet.sei-apis.com
+- **Vault Contract**: `0xaaaac415c0719cff6BAe3816FE244589442db46C`
+- **USDC Contract**: `0x4fCF1784B31630811181f670Aea7A7bEF803eaED`
 
-## Deploy on Vercel
+## 🔧 Configuration
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### WalletConnect Setup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Visit [WalletConnect Cloud](https://cloud.walletconnect.com/)
+2. Create a new project
+3. Copy your Project ID
+4. Add it to your `.env.local` file
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home page
+├── components/            # React components
+│   ├── ui/               # Reusable UI components
+│   ├── wallet/           # Wallet connection components
+│   ├── dashboard/        # Dashboard components
+│   ├── batch-deposit/    # Batch operation components
+│   ├── transaction/      # Transaction components
+│   └── providers.tsx     # Web3 providers setup
+├── hooks/                # Custom React hooks
+├── lib/                  # Utility functions
+│   ├── contracts/        # Contract ABIs and addresses
+│   ├── config/           # App configuration
+│   └── utils/            # Helper functions
+├── store/                # Zustand stores
+└── types/                # TypeScript type definitions
+```
+
+## 🧪 Testing
+
+### Get Test Tokens
+
+1. **Sepolia ETH**: https://sepoliafaucet.com/
+2. **Sei Testnet**: https://atlantic-2.app.sei.io/faucet
+3. **Test USDC**: https://faucet.circle.com/
+
+### Test the Application
+
+1. Connect your wallet
+2. Switch to Sepolia or Sei Testnet
+3. Get test tokens from faucets
+4. Try depositing and withdrawing from the vault
+
+## 🚀 Development Phases
+
+### Phase 1: Foundation ✅
+
+- [x] Next.js project setup with TypeScript
+- [x] Tailwind CSS configuration
+- [x] Basic project structure
+- [x] RainbowKit + wagmi integration
+
+### Phase 2: Core Features (Next)
+
+- [ ] Multi-chain configuration
+- [ ] Wallet connection flow
+- [ ] Balance dashboard
+- [ ] Basic deposit/withdraw forms
+
+### Phase 3: Batch Operations
+
+- [ ] Multi-chain batch deposit UI
+- [ ] Transaction sequence management
+- [ ] Progress tracking and status updates
+- [ ] Error handling and retry logic
+
+### Phase 4: Polish & Deploy
+
+- [ ] Transaction history
+- [ ] Loading states and animations
+- [ ] Mobile responsiveness
+- [ ] Testing and bug fixes
+- [ ] Documentation and deployment
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - see LICENSE file for details.
+
+## 🆘 Support
+
+If you encounter any issues:
+
+1. Check the console for error messages
+2. Ensure you have test tokens
+3. Verify you're on the correct network
+4. Check that your wallet is connected
+
+For additional help, please open an issue in the repository.
