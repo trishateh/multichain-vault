@@ -139,10 +139,10 @@ src/
 
 ### Phase 2: Core Features (Next)
 
-- [ ] Multi-chain configuration
-- [ ] Wallet connection flow
-- [ ] Balance dashboard
-- [ ] Basic deposit/withdraw forms
+- [x] Multi-chain configuration
+- [x] Wallet connection flow
+- [x] Balance dashboard
+- [x] Basic deposit/withdraw forms
 
 ### Phase 3: Batch Operations
 
