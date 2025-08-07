@@ -146,10 +146,10 @@ src/
 
 ### Phase 3: Batch Operations
 
-- [ ] Multi-chain batch deposit UI
-- [ ] Transaction sequence management
-- [ ] Progress tracking and status updates
-- [ ] Error handling and retry logic
+- [x] Multi-chain batch deposit UI
+- [x] Transaction sequence management
+- [x] Progress tracking and status updates
+- [x] Error handling and retry logic
 
 ### Phase 4: Polish & Deploy
 

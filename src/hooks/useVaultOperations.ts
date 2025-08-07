@@ -23,15 +23,13 @@ export function useVaultOperations() {
     });
 
   // Check USDC allowance
-  const checkAllowance = async (
-    _chainId: SupportedChainId,
-    _amount: string
-  ) => {
+  const checkAllowance = async (chainId: SupportedChainId, amount: string) => {
     if (!address) return false;
 
     try {
       // This would need to be implemented with useReadContract
       // For now, we'll assume approval is needed
+      console.log("Checking allowance for", chainId, amount);
       return false;
     } catch (error) {
       console.error("Error checking allowance:", error);

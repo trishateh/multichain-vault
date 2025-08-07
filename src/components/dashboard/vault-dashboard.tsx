@@ -7,12 +7,14 @@ import { useBalances } from '@/hooks/useBalances'
 import { formatNumber } from '@/lib/utils'
 import { DepositModal } from '@/components/ui/deposit-modal'
 import { WithdrawModal } from '@/components/ui/withdraw-modal'
+import { BatchDeposit } from '@/components/batch-deposit/batch-deposit'
 
 export function VaultDashboard() {
   const { isConnected } = useAccount()
   const { balances, totalWalletBalance, totalVaultBalance, totalPortfolioValue, isLoading } = useBalances()
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false)
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false)
+  const [showBatchDeposit, setShowBatchDeposit] = useState(false)
 
   return (
     <div className="space-y-8">
@@ -126,21 +128,45 @@ export function VaultDashboard() {
             <h2 className="text-lg font-medium text-gray-900 mb-4">
               Quick Actions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button 
+                onClick={() => setShowBatchDeposit(true)}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow-lg cursor-pointer"
+              >
+                🚀 Multi-Chain Batch Deposit
+              </button>
               <button 
                 onClick={() => setIsDepositModalOpen(true)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors cursor-pointer"
               >
-                Deposit Funds
+                Single Deposit
               </button>
               <button 
                 onClick={() => setIsWithdrawModalOpen(true)}
-                className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
+                className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors cursor-pointer"
               >
                 Withdraw Funds
               </button>
             </div>
           </div>
+
+          {/* Batch Deposit Section */}
+          {showBatchDeposit && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-medium text-gray-900">
+                  Multi-Chain Batch Operations
+                </h2>
+                <button
+                  onClick={() => setShowBatchDeposit(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <BatchDeposit />
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-12">
