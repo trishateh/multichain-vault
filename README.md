@@ -7,8 +7,12 @@ A modern Web3 frontend application that interacts with SimpleVault smart contrac
 - **Multi-Wallet Support**: Connect with MetaMask, WalletConnect, and other popular wallets via RainbowKit
 - **Multi-Chain Dashboard**: View USDC balances across Sepolia and Sei Testnet
 - **Batch Operations**: Deposit funds across multiple chains in a single guided flow
+- **Transaction History**: View recent transactions with status indicators and explorer links
 - **Real-time Updates**: Live transaction status and balance updates
-- **Responsive Design**: Mobile-first design with Tailwind CSS
+- **Loading States**: Skeleton loaders and smooth animations throughout the app
+- **Mobile Responsive**: Optimized for mobile, tablet, and desktop devices
+- **Error Boundaries**: Graceful error handling with user-friendly error messages
+- **Modern UI**: Clean, professional interface with hover effects and transitions
 
 ## 🛠️ Tech Stack
 
@@ -98,11 +102,11 @@ src/
 │   ├── layout.tsx         # Root layout
 │   └── page.tsx           # Home page
 ├── components/            # React components
-│   ├── ui/               # Reusable UI components
+│   ├── ui/               # Reusable UI components (modals, skeleton, error boundary)
 │   ├── wallet/           # Wallet connection components
 │   ├── dashboard/        # Dashboard components
 │   ├── batch-deposit/    # Batch operation components
-│   ├── transaction/      # Transaction components
+│   ├── transaction/      # Transaction history components
 │   └── providers.tsx     # Web3 providers setup
 ├── hooks/                # Custom React hooks
 ├── lib/                  # Utility functions
@@ -151,12 +155,13 @@ src/
 - [x] Progress tracking and status updates
 - [x] Error handling and retry logic
 
-### Phase 4: Polish & Deploy
+### Phase 4: Polish & Deploy ✅
 
-- [ ] Transaction history
-- [ ] Loading states and animations
-- [ ] Mobile responsiveness
-- [ ] Testing and bug fixes
+- [x] Transaction history
+- [x] Loading states and animations
+- [x] Mobile responsiveness
+- [x] Testing and bug fixes
+- [x] Error boundaries
 - [ ] Documentation and deployment
 
 ## 🤝 Contributing

@@ -192,7 +192,7 @@ export function BatchDepositForm({ onSubmit, isLoading = false }: BatchDepositFo
                     value={deposit.amount}
                     onChange={(e) => updateAmount(deposit.chainId, e.target.value)}
                     placeholder="0.00"
-                    className={`block w-full pl-9 pr-16 py-2 border rounded-md shadow-sm focus:ring-2 focus:border-transparent ${
+                    className={`block w-full pl-9 pr-16 py-2 border rounded-md shadow-sm focus:ring-2 focus:border-transparent text-gray-500 ${
                       error
                         ? "border-red-300 focus:ring-red-500"
                         : "border-gray-300 focus:ring-blue-500"
