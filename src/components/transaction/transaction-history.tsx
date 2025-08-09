@@ -133,7 +133,7 @@ export function TransactionHistory() {
                       <>
                         <span className="text-gray-400">•</span>
                         <p className="text-sm text-gray-900">
-                          {formatNumber(Number(tx.amount) / 1e6)} USDC
+                          {formatNumber(Number(tx.amount))} USDC
                         </p>
                       </>
                     )}

@@ -14,10 +14,11 @@ interface BatchDepositInput {
 export function BatchDeposit() {
   const [showProgressModal, setShowProgressModal] = useState(false);
   const {
-    pendingBatch,
     isExecuting,
+    batchFlowState,
+    batchSteps,
+    currentStepIndex,
     executeBatchOperation,
-    retryTransaction,
     cancelBatch,
   } = useBatchOperations();
 
@@ -27,17 +28,31 @@ export function BatchDeposit() {
   };
 
   const handleCloseModal = () => {
-    setShowProgressModal(false);
-  };
-
-  const handleRetryTransaction = (chainId: number, type: string) => {
-    retryTransaction(chainId, type);
+    // Only allow closing if batch is completed or failed
+    if (batchFlowState === "completed" || batchFlowState === "failed" || batchFlowState === "idle") {
+      setShowProgressModal(false);
+    }
   };
 
   const handleCancelBatch = () => {
     cancelBatch();
     setShowProgressModal(false);
   };
+
+  // Create a mock BatchOperation for the modal (temporary until we update the modal)
+  const mockBatchOperation = batchSteps.length > 0 ? {
+    id: `batch-${Date.now()}`,
+    deposits: [],
+    status: batchFlowState as any,
+    currentStep: currentStepIndex,
+    totalSteps: batchSteps.length,
+    transactions: batchSteps.map(step => ({
+      chainId: step.chainId,
+      type: step.type,
+      status: step.status as any,
+      amount: step.amount,
+    })),
+  } : null;
 
   return (
     <>
@@ -49,8 +64,8 @@ export function BatchDeposit() {
       <BatchProgressModal
         isOpen={showProgressModal}
         onClose={handleCloseModal}
-        batchOperation={pendingBatch}
-        onRetryTransaction={handleRetryTransaction}
+        batchOperation={mockBatchOperation}
+        onRetryTransaction={() => {}} // Disabled for now
         onCancelBatch={handleCancelBatch}
       />
     </>

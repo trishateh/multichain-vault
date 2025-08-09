@@ -7,7 +7,14 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
 import { Toaster } from 'react-hot-toast'
 import { wagmiConfig } from '@/lib/config/wagmi'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

@@ -19,13 +19,13 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
   const currentChainId = useChainId()
   const { switchChain } = useSwitchChain()
   const { balances } = useBalances()
-  const { approve, deposit, isLoading } = useVaultOperations()
+  const { depositWithApproval, isLoading } = useVaultOperations()
   
   const [selectedChainId, setSelectedChainId] = useState<SupportedChainId>(
     supportedChains[0].id as SupportedChainId
   )
   const [amount, setAmount] = useState('')
-  const [step, setStep] = useState<'input' | 'approve' | 'deposit'>('input')
+  const [step, setStep] = useState<'input' | 'processing' | 'completed'>('input')
 
   const selectedChain = supportedChains.find(chain => chain.id === selectedChainId)
   const selectedBalance = balances.find(balance => balance.chainId === selectedChainId)
@@ -35,7 +35,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
     setAmount(maxAmount)
   }
 
-  const handleApprove = async () => {
+  const handleDepositFlow = async () => {
     if (currentChainId !== selectedChainId) {
       try {
         await switchChain({ chainId: selectedChainId })
@@ -45,30 +45,20 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
       }
     }
 
-    setStep('approve')
-    const success = await approve(selectedChainId, amount)
-    if (success) {
-      setStep('deposit')
+    setStep('processing')
+    const result = await depositWithApproval(selectedChainId, amount)
+    
+    if (result.success) {
+      setStep('completed')
+      // Close modal after a short delay to show success
+      setTimeout(() => {
+        onClose()
+        setStep('input')
+        setAmount('')
+      }, 2000)
     } else {
+      // Reset to input on failure
       setStep('input')
-    }
-  }
-
-  const handleDeposit = async () => {
-    if (currentChainId !== selectedChainId) {
-      try {
-        await switchChain({ chainId: selectedChainId })
-      } catch (error) {
-        console.error('Failed to switch chain:', error)
-        return
-      }
-    }
-
-    const success = await deposit(selectedChainId, amount)
-    if (success) {
-      onClose()
-      setStep('input')
-      setAmount('')
     }
   }
 
@@ -150,7 +140,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
           {step === 'input' && (
             <button
               type="button"
-              onClick={handleApprove}
+              onClick={handleDepositFlow}
               disabled={!isValidAmount || isLoading || !isConnected}
               className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
@@ -158,24 +148,23 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
             </button>
           )}
           
-          {step === 'approve' && (
+          {step === 'processing' && (
             <button
               type="button"
               disabled
               className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 opacity-50 cursor-not-allowed"
             >
-              Approving...
+              Processing...
             </button>
           )}
           
-          {step === 'deposit' && (
+          {step === 'completed' && (
             <button
               type="button"
-              onClick={handleDeposit}
-              disabled={isLoading}
-              className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+              className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 opacity-50 cursor-not-allowed"
             >
-              {isLoading ? 'Depositing...' : 'Deposit'}
+              ✅ Completed
             </button>
           )}
         </div>

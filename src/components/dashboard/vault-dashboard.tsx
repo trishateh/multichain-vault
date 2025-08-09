@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import { useBalances } from '@/hooks/useBalances'
@@ -12,6 +12,58 @@ import { TransactionHistory } from '@/components/transaction'
 import { PortfolioSummarySkeleton, BalanceCardSkeleton } from '@/components/ui/skeleton'
 
 export function VaultDashboard() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return <VaultDashboardSkeleton />
+  }
+
+  return <VaultDashboardContent />
+}
+
+function VaultDashboardSkeleton() {
+  return (
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+      {/* Wallet Connection Section */}
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base sm:text-lg font-medium text-gray-900">
+              Wallet Connection
+            </h2>
+            <p className="mt-1 text-xs sm:text-sm text-gray-500">
+              Connect your wallet to interact with the vault
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <div className="h-10 w-40 bg-gray-200 rounded-lg animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Loading state */}
+      <div className="text-center py-8 sm:py-12">
+        <div className="bg-white rounded-lg shadow p-6 sm:p-8">
+          <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <span className="text-2xl">👛</span>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Loading Wallet Connection
+          </h3>
+          <p className="text-sm sm:text-base text-gray-500 max-w-md mx-auto">
+            Please wait while we initialize the wallet connection...
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function VaultDashboardContent() {
   const { isConnected } = useAccount()
   const { balances, totalWalletBalance, totalVaultBalance, totalPortfolioValue, isLoading } = useBalances()
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false)

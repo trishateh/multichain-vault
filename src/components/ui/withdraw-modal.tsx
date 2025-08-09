@@ -44,8 +44,8 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
       }
     }
 
-    const success = await withdraw(selectedChainId, amount)
-    if (success) {
+    const result = await withdraw(selectedChainId, amount)
+    if (result.success) {
       onClose()
       setAmount('')
     }
