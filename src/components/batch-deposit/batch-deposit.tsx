@@ -20,6 +20,7 @@ export function BatchDeposit() {
     currentStepIndex,
     executeBatchOperation,
     cancelBatch,
+    retryStep,
   } = useBatchOperations();
 
   const handleSubmit = async (deposits: BatchDepositInput[]) => {
@@ -43,13 +44,13 @@ export function BatchDeposit() {
   const mockBatchOperation = batchSteps.length > 0 ? {
     id: `batch-${Date.now()}`,
     deposits: [],
-    status: batchFlowState as any,
-    currentStep: currentStepIndex,
+    status: (batchFlowState === 'executing' ? 'in_progress' : batchFlowState) as any,
+    currentStep: currentStepIndex + 1,
     totalSteps: batchSteps.length,
     transactions: batchSteps.map(step => ({
       chainId: step.chainId,
       type: step.type,
-      status: step.status as any,
+      status: (step.status === 'wallet-pending' || step.status === 'confirming') ? 'in_progress' : step.status as any,
       amount: step.amount,
     })),
   } : null;
@@ -65,7 +66,9 @@ export function BatchDeposit() {
         isOpen={showProgressModal}
         onClose={handleCloseModal}
         batchOperation={mockBatchOperation}
-        onRetryTransaction={() => {}} // Disabled for now
+        onRetryTransaction={(chainId, type) => {
+          retryStep(chainId as SupportedChainId, type as 'approval' | 'deposit')
+        }}
         onCancelBatch={handleCancelBatch}
       />
     </>

@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   useAccount,
+  useChainId,
   useSwitchChain,
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -13,6 +14,7 @@ import { CONTRACT_ADDRESSES } from "@/lib/config/contracts";
 import { useTransactionStore } from "@/store/transactionStore";
 import { SupportedChainId } from "@/lib/config/contracts";
 import toast from "react-hot-toast";
+import { supportedChains } from "@/lib/config/chains";
 
 interface BatchDepositInput {
   chainId: SupportedChainId;
@@ -29,7 +31,8 @@ interface BatchStep {
 type BatchFlowState = "idle" | "executing" | "completed" | "failed";
 
 export function useBatchOperations() {
-  const { address, chainId: currentChainId } = useAccount();
+  const { address } = useAccount();
+  const currentChainId = useChainId();
   const { switchChain } = useSwitchChain();
 
   // Dedicated wagmi hooks for batch operations with state tracking
@@ -106,13 +109,27 @@ export function useBatchOperations() {
         toast.error(`Transaction failed on ${chainName}`);
       }
 
-      setBatchSteps((prev) =>
-        prev.map((step, idx) =>
-          idx === currentStepIndex ? { ...step, status: "failed" } : step
-        )
+      setBatchSteps((prev) => {
+        const isApproval = currentStep.type === "approval";
+        const nextIdx = currentStepIndex + 1;
+        return prev.map((step, idx) => {
+          if (idx === currentStepIndex) return { ...step, status: "failed" };
+          if (
+            isApproval &&
+            idx === nextIdx &&
+            step.chainId === currentStep.chainId &&
+            step.type === "deposit"
+          ) {
+            return { ...step, status: "failed" };
+          }
+          return step;
+        });
+      });
+      // Skip paired deposit if approval failed
+      setCurrentStepIndex(
+        (prev) => prev + (currentStep.type === "approval" ? 2 : 1)
       );
-      setBatchFlowState("failed");
-      setIsExecuting(false);
+      resetWriteContract();
     }
   }, [
     batchFlowState,
@@ -184,13 +201,26 @@ export function useBatchOperations() {
       toast.dismiss(`batch-confirm-${currentStepIndex}`);
       toast.error(`Transaction confirmation failed on ${chainName}`);
 
-      setBatchSteps((prev) =>
-        prev.map((step, idx) =>
-          idx === currentStepIndex ? { ...step, status: "failed" } : step
-        )
+      setBatchSteps((prev) => {
+        const isApproval = currentStep.type === "approval";
+        const nextIdx = currentStepIndex + 1;
+        return prev.map((step, idx) => {
+          if (idx === currentStepIndex) return { ...step, status: "failed" };
+          if (
+            isApproval &&
+            idx === nextIdx &&
+            step.chainId === currentStep.chainId &&
+            step.type === "deposit"
+          ) {
+            return { ...step, status: "failed" };
+          }
+          return step;
+        });
+      });
+      setCurrentStepIndex(
+        (prev) => prev + (currentStep.type === "approval" ? 2 : 1)
       );
-      setBatchFlowState("failed");
-      setIsExecuting(false);
+      resetWriteContract();
     }
   }, [
     batchFlowState,
@@ -220,12 +250,99 @@ export function useBatchOperations() {
       try {
         // Switch network if needed
         if (currentChainId !== currentStep.chainId) {
-          toast.loading(`Switching to ${chainName}...`, {
-            id: "network-switch",
+          toast.loading(`Please switch to ${chainName} in your wallet...`, {
+            id: `switch-${currentStepIndex}`,
           });
-          await switchChain({ chainId: currentStep.chainId });
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          toast.dismiss("network-switch");
+          try {
+            await switchChain({ chainId: currentStep.chainId });
+            toast.dismiss(`switch-${currentStepIndex}`);
+            toast.success(`Switched to ${chainName}`);
+          } catch (switchErr: unknown) {
+            // Attempt add-chain fallback if missing
+            const code = (switchErr as any)?.code;
+            const msg: string = (switchErr as Error)?.message || "";
+            const needsAdd =
+              code === 4902 || /unrecognized|not added|chain/i.test(msg);
+            if (
+              needsAdd &&
+              typeof window !== "undefined" &&
+              (window as any).ethereum
+            ) {
+              try {
+                const meta = supportedChains.find(
+                  (c) => c.id === currentStep.chainId
+                );
+                if (meta) {
+                  await (window as any).ethereum.request({
+                    method: "wallet_addEthereumChain",
+                    params: [
+                      {
+                        chainId: "0x" + meta.id.toString(16),
+                        chainName: meta.name,
+                        rpcUrls: meta.rpcUrls?.default?.http || [],
+                        nativeCurrency: meta.nativeCurrency,
+                        blockExplorerUrls: meta.blockExplorers?.default?.url
+                          ? [meta.blockExplorers.default.url]
+                          : [],
+                      },
+                    ],
+                  });
+                  await switchChain({ chainId: currentStep.chainId });
+                  toast.dismiss(`switch-${currentStepIndex}`);
+                  toast.success(`Switched to ${chainName}`);
+                } else {
+                  throw new Error("Unsupported chain metadata not found");
+                }
+              } catch (addErr: any) {
+                toast.dismiss(`switch-${currentStepIndex}`);
+                const addMsg: string =
+                  addErr?.message || msg || "Network switch failed";
+                if (/user rejected/i.test(addMsg)) {
+                  toast.error(`Network switch rejected for ${chainName}`);
+                } else {
+                  toast.error(`Failed to switch to ${chainName}`);
+                }
+                // Mark this step failed and proceed, skip deposit when approval
+                setBatchSteps((prev) => {
+                  const isApproval = currentStep.type === "approval";
+                  const nextIdx = currentStepIndex + 1;
+                  return prev.map((step, idx) => {
+                    if (idx === currentStepIndex)
+                      return { ...step, status: "failed" };
+                    if (
+                      isApproval &&
+                      idx === nextIdx &&
+                      step.chainId === currentStep.chainId &&
+                      step.type === "deposit"
+                    ) {
+                      return { ...step, status: "failed" };
+                    }
+                    return step;
+                  });
+                });
+                setCurrentStepIndex(
+                  (prev) => prev + (currentStep.type === "approval" ? 2 : 1)
+                );
+                return;
+              }
+            } else {
+              toast.dismiss(`switch-${currentStepIndex}`);
+              if (/user rejected/i.test(msg)) {
+                toast.error(`Network switch rejected for ${chainName}`);
+              } else {
+                toast.error(`Failed to switch to ${chainName}`);
+              }
+              setBatchSteps((prev) =>
+                prev.map((step, idx) =>
+                  idx === currentStepIndex
+                    ? { ...step, status: "failed" }
+                    : step
+                )
+              );
+              setCurrentStepIndex((prev) => prev + 1);
+              return;
+            }
+          }
         }
 
         // Update overall progress (but don't show transaction-specific toasts yet)
@@ -273,13 +390,33 @@ export function useBatchOperations() {
       } catch (error) {
         console.error("Step execution error:", error);
         toast.dismiss("batch-progress");
-        setBatchSteps((prev) =>
-          prev.map((step, idx) =>
-            idx === currentStepIndex ? { ...step, status: "failed" } : step
-          )
+        const message = (error as Error)?.message || "Transaction failed";
+        if (message.includes("User rejected")) {
+          toast.error("User rejected the transaction");
+        } else {
+          toast.error("Transaction failed");
+        }
+        setBatchSteps((prev) => {
+          const isApproval = currentStep.type === "approval";
+          const nextIdx = currentStepIndex + 1;
+          return prev.map((step, idx) => {
+            if (idx === currentStepIndex) return { ...step, status: "failed" };
+            if (
+              isApproval &&
+              idx === nextIdx &&
+              step.chainId === currentStep.chainId &&
+              step.type === "deposit"
+            ) {
+              return { ...step, status: "failed" };
+            }
+            return step;
+          });
+        });
+        // Proceed to next step, skipping paired deposit when approval failed
+        setCurrentStepIndex(
+          (prev) => prev + (currentStep.type === "approval" ? 2 : 1)
         );
-        setBatchFlowState("failed");
-        setIsExecuting(false);
+        resetWriteContract();
       }
     };
 
@@ -291,7 +428,22 @@ export function useBatchOperations() {
     currentChainId,
     switchChain,
     writeBatchContract,
+    resetWriteContract,
   ]);
+
+  // Finalize when all steps processed
+  useEffect(() => {
+    if (batchFlowState !== "executing") return;
+    if (currentStepIndex < batchSteps.length) return;
+    const anyFailed = batchSteps.some((s) => s.status === "failed");
+    setBatchFlowState(anyFailed ? "failed" : "completed");
+    setIsExecuting(false);
+    if (anyFailed) {
+      toast.error("Batch completed with some failures");
+    } else {
+      toast.success("Batch deposit completed successfully!");
+    }
+  }, [batchFlowState, currentStepIndex, batchSteps]);
 
   // Create batch steps from deposit inputs
   const createBatchSteps = useCallback(
@@ -337,7 +489,9 @@ export function useBatchOperations() {
       // Create batch steps and start execution
       const steps = createBatchSteps(deposits);
       setBatchSteps(steps);
-      setCurrentStepIndex(0);
+      // Determine first actionable step that has a positive amount
+      const firstIdx = steps.findIndex((s) => parseFloat(s.amount || "0") > 0);
+      setCurrentStepIndex(firstIdx === -1 ? 0 : firstIdx);
       setBatchFlowState("executing");
       setIsExecuting(true);
 
@@ -373,5 +527,28 @@ export function useBatchOperations() {
     executeBatchOperation,
     cancelBatch,
     resetBatchOperation,
+    retryStep: (chainId: SupportedChainId, type: "approval" | "deposit") => {
+      setBatchSteps((prev) => {
+        const idx = prev.findIndex(
+          (s) => s.chainId === chainId && s.type === type
+        );
+        if (idx === -1) return prev;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], status: "pending" };
+        return updated;
+      });
+      setCurrentStepIndex((prevIdx) => {
+        // Jump to the retried step
+        const targetIdx = batchSteps.findIndex(
+          (s) => s.chainId === chainId && s.type === type
+        );
+        return targetIdx === -1 ? prevIdx : targetIdx;
+      });
+      if (batchFlowState !== "executing") {
+        setBatchFlowState("executing");
+        setIsExecuting(true);
+      }
+      resetWriteContract();
+    },
   };
 }

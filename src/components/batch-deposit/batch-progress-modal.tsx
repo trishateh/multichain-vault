@@ -95,11 +95,11 @@ export function BatchProgressModal({
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
                       Batch Deposit Progress
                     </Dialog.Title>
                     <p className="mt-1 text-sm text-gray-500">
-                      Step {batchOperation.currentStep} of {batchOperation.totalSteps}
+                      Step {Math.min(batchOperation.currentStep, batchOperation.totalSteps)} of {batchOperation.totalSteps}
                     </p>
                   </div>
                   {canClose && (
