@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { Modal } from './modal'
 import { useVaultOperations } from '@/hooks/useVaultOperations'
@@ -19,16 +19,43 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
   const currentChainId = useChainId()
   const { switchChain } = useSwitchChain()
   const { balances } = useBalances()
-  const { withdraw, isLoading } = useVaultOperations()
+  const { withdraw, isLoading, withdrawFlowState } = useVaultOperations()
   
   const [selectedChainId, setSelectedChainId] = useState<SupportedChainId>(
     supportedChains[0].id as SupportedChainId
   )
   const [amount, setAmount] = useState('')
+  const [step, setStep] = useState<'input' | 'processing' | 'completed'>('input')
 
   const selectedChain = supportedChains.find(chain => chain.id === selectedChainId)
   const selectedBalance = balances.find(balance => balance.chainId === selectedChainId)
   const maxAmount = selectedBalance?.vaultBalance || '0'
+
+  // Monitor withdrawal flow state to update UI step
+  useEffect(() => {
+    if (withdrawFlowState === 'withdraw-pending' || withdrawFlowState === 'withdraw-confirming') {
+      setStep('processing')
+    } else if (withdrawFlowState === 'completed') {
+      setStep('completed')
+      // Close modal after showing success for a moment
+      const timeout = setTimeout(() => {
+        onClose()
+        setStep('input')
+        setAmount('')
+      }, 2000)
+      return () => clearTimeout(timeout)
+    } else if (withdrawFlowState === 'error') {
+      setStep('input') // Reset to input on error
+    }
+  }, [withdrawFlowState, onClose])
+
+  // Reset step when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setStep('input')
+      setAmount('')
+    }
+  }, [isOpen])
 
   const handleMaxClick = () => {
     setAmount(maxAmount)
@@ -44,11 +71,9 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
       }
     }
 
-    const result = await withdraw(selectedChainId, amount)
-    if (result.success) {
-      onClose()
-      setAmount('')
-    }
+    setStep('processing')
+    await withdraw(selectedChainId, amount)
+    // The useEffect hook will handle UI updates based on withdrawFlowState
   }
 
   const isValidAmount = amount && parseFloat(amount) > 0 && parseFloat(amount) <= parseFloat(maxAmount)
@@ -86,7 +111,7 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-16 text-gray-500"
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-16 text-gray-700"
               disabled={isLoading}
               step="0.01"
               min="0"
@@ -121,19 +146,42 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
             type="button"
             onClick={onClose}
             className="flex-1 py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            disabled={isLoading}
+            disabled={isLoading || step === 'processing'}
           >
             Cancel
           </button>
           
-          <button
-            type="button"
-            onClick={handleWithdraw}
-            disabled={!isValidAmount || isLoading || !isConnected}
-            className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {isLoading ? 'Processing...' : 'Withdraw'}
-          </button>
+          {step === 'input' && (
+            <button
+              type="button"
+              onClick={handleWithdraw}
+              disabled={!isValidAmount || isLoading || !isConnected}
+              className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isLoading ? 'Processing...' : 'Withdraw'}
+            </button>
+          )}
+          
+          {step === 'processing' && (
+            <button
+              type="button"
+              disabled
+              className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 opacity-50 cursor-not-allowed"
+            >
+              {withdrawFlowState === 'withdraw-pending' ? 'Confirm in Wallet...' : 
+               withdrawFlowState === 'withdraw-confirming' ? 'Confirming...' : 'Processing...'}
+            </button>
+          )}
+          
+          {step === 'completed' && (
+            <button
+              type="button"
+              disabled
+              className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 opacity-50 cursor-not-allowed"
+            >
+              ✅ Completed
+            </button>
+          )}
         </div>
       </div>
     </Modal>

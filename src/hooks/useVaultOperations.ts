@@ -364,10 +364,125 @@ export function useVaultOperations() {
     [address, writeContract]
   );
 
+  // Separate hook for withdrawal to track states independently
+  const {
+    writeContract: writeWithdraw,
+    data: withdrawHash,
+    isPending: isWithdrawPending,
+    error: withdrawError,
+  } = useWriteContract();
+
+  // Track withdrawal transaction
+  const {
+    isLoading: isWithdrawConfirming,
+    isSuccess: isWithdrawConfirmed,
+    error: withdrawReceiptError,
+  } = useWaitForTransactionReceipt({
+    hash: withdrawHash,
+  });
+
+  // State to track withdrawal flow
+  const [withdrawFlowState, setWithdrawFlowState] = useState<
+    "idle" | "withdraw-pending" | "withdraw-confirming" | "completed" | "error"
+  >("idle");
+
+  // Store current withdrawal parameters
+  const [currentWithdrawParams, setCurrentWithdrawParams] = useState<{
+    chainId: SupportedChainId;
+    amount: string;
+  } | null>(null);
+
+  // Handle withdrawal state changes with toasts
+  useEffect(() => {
+    if (withdrawFlowState === "withdraw-pending" && isWithdrawPending) {
+      toast.loading("Please confirm the withdrawal in your wallet...", {
+        id: "withdraw-pending",
+      });
+    }
+
+    if (
+      withdrawFlowState === "withdraw-pending" &&
+      withdrawHash &&
+      !isWithdrawPending
+    ) {
+      toast.dismiss("withdraw-pending");
+      toast.success("Withdrawal transaction submitted!");
+      setWithdrawFlowState("withdraw-confirming");
+    }
+
+    if (withdrawFlowState === "withdraw-pending" && withdrawError) {
+      toast.dismiss("withdraw-pending");
+      toast.error("Withdrawal failed");
+      setWithdrawFlowState("error");
+    }
+  }, [withdrawFlowState, isWithdrawPending, withdrawHash, withdrawError]);
+
+  // Handle withdrawal confirmation state changes
+  useEffect(() => {
+    if (withdrawFlowState === "withdraw-confirming" && isWithdrawConfirming) {
+      toast.loading("Waiting for withdrawal confirmation...", {
+        id: "withdraw-confirming",
+      });
+    }
+
+    if (withdrawFlowState === "withdraw-confirming" && isWithdrawConfirmed) {
+      toast.dismiss("withdraw-confirming");
+      toast.success("Withdrawal completed successfully!");
+
+      // Record the withdrawal transaction with actual hash
+      if (withdrawHash && currentWithdrawParams) {
+        const contracts = CONTRACT_ADDRESSES[currentWithdrawParams.chainId];
+        addTransaction({
+          id: `withdraw-${Date.now()}`,
+          chainId: currentWithdrawParams.chainId,
+          type: "withdraw",
+          hash: withdrawHash,
+          amount: currentWithdrawParams.amount,
+          token: contracts.usdc,
+          timestamp: Date.now(),
+          status: "completed",
+        });
+      }
+
+      setWithdrawFlowState("completed");
+    }
+
+    if (withdrawFlowState === "withdraw-confirming" && withdrawReceiptError) {
+      toast.dismiss("withdraw-confirming");
+      toast.error("Withdrawal confirmation failed");
+      setWithdrawFlowState("error");
+    }
+  }, [
+    withdrawFlowState,
+    isWithdrawConfirming,
+    isWithdrawConfirmed,
+    withdrawReceiptError,
+    withdrawHash,
+    addTransaction,
+    currentWithdrawParams,
+  ]);
+
+  // Reset withdrawal flow state when completed or error
+  useEffect(() => {
+    if (withdrawFlowState === "completed" || withdrawFlowState === "error") {
+      const timeout = setTimeout(() => {
+        setWithdrawFlowState("idle");
+        setCurrentWithdrawParams(null);
+        setIsLoading(false);
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [withdrawFlowState]);
+
   const withdraw = useCallback(
     async (chainId: SupportedChainId, amount: string) => {
       if (!address) {
         toast.error("Please connect your wallet");
+        return { success: false, hash: null };
+      }
+
+      if (withdrawFlowState !== "idle") {
+        toast.error("A withdrawal is already in progress");
         return { success: false, hash: null };
       }
 
@@ -376,7 +491,13 @@ export function useVaultOperations() {
         const contracts = CONTRACT_ADDRESSES[chainId];
         const amountWei = parseUnits(amount, 6);
 
-        const result = await writeContract({
+        // Store parameters for later use in transaction recording
+        setCurrentWithdrawParams({ chainId, amount });
+
+        // Start the withdrawal process
+        setWithdrawFlowState("withdraw-pending");
+
+        await writeWithdraw({
           chainId,
           address: contracts.vault,
           abi: SimpleVaultABI,
@@ -384,23 +505,12 @@ export function useVaultOperations() {
           args: [contracts.usdc, amountWei],
         });
 
-        toast.success("Withdrawal transaction submitted");
-
-        // Record the withdrawal transaction (we'll use a placeholder hash for now)
-        addTransaction({
-          id: `withdraw-${chainId}-${Date.now()}`,
-          chainId,
-          type: "withdraw",
-          hash: `0x${Date.now().toString(16)}` as `0x${string}`,
-          amount: amount,
-          token: contracts.usdc,
-          timestamp: Date.now(),
-          status: "completed",
-        });
-
-        return { success: true, hash: result };
+        // Return immediately - the useEffect hooks will manage the rest of the flow
+        return { success: true, hash: null };
       } catch (error: unknown) {
         console.error("Withdrawal error:", error);
+        setWithdrawFlowState("error");
+        setIsLoading(false);
         if (error instanceof Error && error.message.includes("User rejected")) {
           toast.error("Transaction was rejected");
         } else {
@@ -409,11 +519,9 @@ export function useVaultOperations() {
           );
         }
         return { success: false, hash: null };
-      } finally {
-        setIsLoading(false);
       }
     },
-    [address, writeContract, addTransaction]
+    [address, writeWithdraw, withdrawFlowState]
   );
 
   // State-driven deposit flow that responds to actual wagmi states
@@ -525,10 +633,13 @@ export function useVaultOperations() {
       isPending ||
       isConfirming ||
       isApprovalPending ||
-      isDepositPending,
+      isDepositPending ||
+      isWithdrawPending,
     isConfirmed,
     hash,
     depositFlowState,
+    withdrawFlowState,
     resetDepositFlow: () => setDepositFlowState("idle"),
+    resetWithdrawFlow: () => setWithdrawFlowState("idle"),
   };
 }
