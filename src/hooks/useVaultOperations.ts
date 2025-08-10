@@ -4,18 +4,23 @@ import {
   useAccount,
   useWriteContract,
   useWaitForTransactionReceipt,
+  useChainId,
+  useSwitchChain,
 } from "wagmi";
 import { parseUnits } from "viem";
 import { SimpleVaultABI, ERC20_ABI } from "@/lib/contracts";
 import { CONTRACT_ADDRESSES, SupportedChainId } from "@/lib/config/contracts";
 import { useState, useCallback, useEffect } from "react";
 import toast from "react-hot-toast";
+import { supportedChains } from "@/lib/config/chains";
 import { useTransactionStore } from "@/store/transactionStore";
 
 export function useVaultOperations() {
   const { address } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
   const { addTransaction } = useTransactionStore();
+  const currentChainId = useChainId();
+  const { switchChain } = useSwitchChain();
 
   // Separate hooks for approval and deposit to track states independently
   const {
@@ -493,6 +498,77 @@ export function useVaultOperations() {
 
         // Store parameters for later use in transaction recording
         setCurrentWithdrawParams({ chainId, amount });
+
+        // Ensure correct network before initiating the transaction
+        if (currentChainId !== chainId) {
+          const chainName = chainId === 11155111 ? "Sepolia" : "Sei Testnet";
+          toast.loading(`Please switch to ${chainName} in your wallet...`, {
+            id: "withdraw-switch",
+          });
+          try {
+            await switchChain({ chainId });
+            toast.dismiss("withdraw-switch");
+            toast.success(`Switched to ${chainName}`);
+          } catch (switchErr: any) {
+            // Add-chain fallback if needed
+            const code = switchErr?.code;
+            const msg: string = switchErr?.message || "";
+            const needsAdd =
+              code === 4902 || /unrecognized|not added|chain/i.test(msg);
+            if (
+              needsAdd &&
+              typeof window !== "undefined" &&
+              (window as any).ethereum
+            ) {
+              try {
+                const meta = supportedChains.find((c) => c.id === chainId);
+                if (meta) {
+                  await (window as any).ethereum.request({
+                    method: "wallet_addEthereumChain",
+                    params: [
+                      {
+                        chainId: "0x" + meta.id.toString(16),
+                        chainName: meta.name,
+                        rpcUrls: meta.rpcUrls?.default?.http || [],
+                        nativeCurrency: meta.nativeCurrency,
+                        blockExplorerUrls: meta.blockExplorers?.default?.url
+                          ? [meta.blockExplorers.default.url]
+                          : [],
+                      },
+                    ],
+                  });
+                  await switchChain({ chainId });
+                  toast.dismiss("withdraw-switch");
+                  toast.success(`Switched to ${chainName}`);
+                } else {
+                  throw new Error("Unsupported chain metadata not found");
+                }
+              } catch (addErr: any) {
+                toast.dismiss("withdraw-switch");
+                const addMsg: string =
+                  addErr?.message || msg || "Network switch failed";
+                if (/user rejected/i.test(addMsg)) {
+                  toast.error(`Network switch rejected for ${chainName}`);
+                } else {
+                  toast.error(`Failed to switch to ${chainName}`);
+                }
+                setWithdrawFlowState("error");
+                setIsLoading(false);
+                return { success: false, hash: null };
+              }
+            } else {
+              toast.dismiss("withdraw-switch");
+              if (/user rejected/i.test(msg)) {
+                toast.error(`Network switch rejected for ${chainName}`);
+              } else {
+                toast.error(`Failed to switch to ${chainName}`);
+              }
+              setWithdrawFlowState("error");
+              setIsLoading(false);
+              return { success: false, hash: null };
+            }
+          }
+        }
 
         // Start the withdrawal process
         setWithdrawFlowState("withdraw-pending");

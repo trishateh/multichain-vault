@@ -23,7 +23,7 @@ interface BatchDepositInput {
 
 interface BatchStep {
   chainId: SupportedChainId;
-  type: "approval" | "deposit";
+  type: "approval" | "deposit" | "withdraw";
   amount: string;
   status: "pending" | "wallet-pending" | "confirming" | "completed" | "failed";
 }
@@ -75,7 +75,9 @@ export function useBatchOperations() {
       const actionText =
         currentStep.type === "approval"
           ? "approve USDC spending"
-          : "confirm the deposit";
+          : currentStep.type === "deposit"
+          ? "confirm the deposit"
+          : "confirm the withdrawal";
       toast.loading(`Please ${actionText} on ${chainName}...`, {
         id: `batch-${currentStepIndex}`,
       });
@@ -89,7 +91,11 @@ export function useBatchOperations() {
     ) {
       toast.dismiss(`batch-${currentStepIndex}`);
       const actionText =
-        currentStep.type === "approval" ? "Approval" : "Deposit";
+        currentStep.type === "approval"
+          ? "Approval"
+          : currentStep.type === "deposit"
+          ? "Deposit"
+          : "Withdrawal";
       toast.success(`${actionText} transaction submitted on ${chainName}!`);
 
       // Update step status to confirming
@@ -160,7 +166,11 @@ export function useBatchOperations() {
     if (currentStep.status === "confirming" && isTxConfirmed) {
       toast.dismiss(`batch-confirm-${currentStepIndex}`);
       const actionText =
-        currentStep.type === "approval" ? "Approval" : "Deposit";
+        currentStep.type === "approval"
+          ? "Approval"
+          : currentStep.type === "deposit"
+          ? "Deposit"
+          : "Withdrawal";
       toast.success(`${actionText} confirmed on ${chainName}!`);
 
       // Record transaction in history ONLY after confirmation
@@ -376,12 +386,20 @@ export function useBatchOperations() {
             functionName: "approve",
             args: [contracts.vault, amountWei],
           });
-        } else {
+        } else if (currentStep.type === "deposit") {
           await writeBatchContract({
             chainId: currentStep.chainId,
             address: contracts.vault,
             abi: SimpleVaultABI,
             functionName: "deposit",
+            args: [contracts.usdc, amountWei],
+          });
+        } else if (currentStep.type === "withdraw") {
+          await writeBatchContract({
+            chainId: currentStep.chainId,
+            address: contracts.vault,
+            abi: SimpleVaultABI,
+            functionName: "withdraw",
             args: [contracts.usdc, amountWei],
           });
         }
@@ -439,9 +457,9 @@ export function useBatchOperations() {
     setBatchFlowState(anyFailed ? "failed" : "completed");
     setIsExecuting(false);
     if (anyFailed) {
-      toast.error("Batch completed with some failures");
+      toast.error("Operation completed with some failures");
     } else {
-      toast.success("Batch deposit completed successfully!");
+      toast.success("Operation completed successfully!");
     }
   }, [batchFlowState, currentStepIndex, batchSteps]);
 
@@ -469,6 +487,24 @@ export function useBatchOperations() {
       });
 
       return steps;
+    },
+    []
+  );
+
+  // Create withdraw single-step
+  const createWithdrawSteps = useCallback(
+    (withdrawal: {
+      chainId: SupportedChainId;
+      amount: string;
+    }): BatchStep[] => {
+      return [
+        {
+          chainId: withdrawal.chainId,
+          type: "withdraw",
+          amount: withdrawal.amount,
+          status: "pending",
+        },
+      ];
     },
     []
   );
@@ -501,6 +537,99 @@ export function useBatchOperations() {
     [address, batchFlowState, createBatchSteps]
   );
 
+  // Execute single withdraw operation using the same engine
+  const executeWithdrawOperation = useCallback(
+    async (withdrawal: { chainId: SupportedChainId; amount: string }) => {
+      if (!address) {
+        toast.error("Please connect your wallet");
+        return;
+      }
+
+      if (batchFlowState !== "idle") {
+        toast.error("An operation is already in progress");
+        return;
+      }
+
+      // Preflight network switch to ensure wallet prompt appears before starting engine
+      const targetChainId = withdrawal.chainId;
+      const chainName = targetChainId === 11155111 ? "Sepolia" : "Sei Testnet";
+      if (currentChainId !== targetChainId) {
+        toast.loading(`Please switch to ${chainName} in your wallet...`, {
+          id: `withdraw-pre-switch`,
+        });
+        try {
+          await switchChain({ chainId: targetChainId });
+          toast.dismiss(`withdraw-pre-switch`);
+          toast.success(`Switched to ${chainName}`);
+        } catch (switchErr: any) {
+          // Attempt add-chain fallback if missing
+          const code = switchErr?.code;
+          const msg: string = switchErr?.message || "";
+          const needsAdd =
+            code === 4902 || /unrecognized|not added|chain/i.test(msg);
+          if (
+            needsAdd &&
+            typeof window !== "undefined" &&
+            (window as any).ethereum
+          ) {
+            try {
+              const meta = supportedChains.find((c) => c.id === targetChainId);
+              if (meta) {
+                await (window as any).ethereum.request({
+                  method: "wallet_addEthereumChain",
+                  params: [
+                    {
+                      chainId: "0x" + meta.id.toString(16),
+                      chainName: meta.name,
+                      rpcUrls: meta.rpcUrls?.default?.http || [],
+                      nativeCurrency: meta.nativeCurrency,
+                      blockExplorerUrls: meta.blockExplorers?.default?.url
+                        ? [meta.blockExplorers.default.url]
+                        : [],
+                    },
+                  ],
+                });
+                await switchChain({ chainId: targetChainId });
+                toast.dismiss(`withdraw-pre-switch`);
+                toast.success(`Switched to ${chainName}`);
+              } else {
+                throw new Error("Unsupported chain metadata not found");
+              }
+            } catch (addErr: any) {
+              toast.dismiss(`withdraw-pre-switch`);
+              const addMsg: string =
+                addErr?.message || msg || "Network switch failed";
+              if (/user rejected/i.test(addMsg)) {
+                toast.error(`Network switch rejected for ${chainName}`);
+              } else {
+                toast.error(`Failed to switch to ${chainName}`);
+              }
+              return; // abort starting engine
+            }
+          } else {
+            toast.dismiss(`withdraw-pre-switch`);
+            if (/user rejected/i.test(msg)) {
+              toast.error(`Network switch rejected for ${chainName}`);
+            } else {
+              toast.error(`Failed to switch to ${chainName}`);
+            }
+            return; // abort starting engine
+          }
+        }
+      }
+
+      const steps = createWithdrawSteps(withdrawal);
+      setBatchSteps(steps);
+      setCurrentStepIndex(0);
+      setBatchFlowState("executing");
+      setIsExecuting(true);
+
+      toast.loading("Starting withdrawal...", { id: "batch-start" });
+      setTimeout(() => toast.dismiss("batch-start"), 800);
+    },
+    [address, batchFlowState, createWithdrawSteps, currentChainId, switchChain]
+  );
+
   // Reset batch operation
   const resetBatchOperation = useCallback(() => {
     setBatchFlowState("idle");
@@ -516,6 +645,13 @@ export function useBatchOperations() {
     toast("Batch operation cancelled");
   }, [resetBatchOperation]);
 
+  // Defensive: clear stale in-progress state when route/component remounts
+  useEffect(() => {
+    if (batchFlowState !== "idle" && batchSteps.length === 0) {
+      resetBatchOperation();
+    }
+  }, []);
+
   return {
     // State
     isExecuting,
@@ -525,9 +661,13 @@ export function useBatchOperations() {
 
     // Actions
     executeBatchOperation,
+    executeWithdrawOperation,
     cancelBatch,
     resetBatchOperation,
-    retryStep: (chainId: SupportedChainId, type: "approval" | "deposit") => {
+    retryStep: (
+      chainId: SupportedChainId,
+      type: "approval" | "deposit" | "withdraw"
+    ) => {
       setBatchSteps((prev) => {
         const idx = prev.findIndex(
           (s) => s.chainId === chainId && s.type === type

@@ -12,6 +12,7 @@ interface BatchProgressModalProps {
   batchOperation: BatchOperation | null;
   onRetryTransaction: (chainId: number, type: string) => void;
   onCancelBatch: () => void;
+  title?: string;
 }
 
 export function BatchProgressModal({
@@ -20,6 +21,7 @@ export function BatchProgressModal({
   batchOperation,
   onRetryTransaction,
   onCancelBatch,
+  title,
 }: BatchProgressModalProps) {
   if (!batchOperation) return null;
 
@@ -96,7 +98,7 @@ export function BatchProgressModal({
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
-                      Batch Deposit Progress
+                      {title || "Operation Progress"}
                     </Dialog.Title>
                     <p className="mt-1 text-sm text-gray-500">
                       Step {Math.min(batchOperation.currentStep, batchOperation.totalSteps)} of {batchOperation.totalSteps}
@@ -138,7 +140,11 @@ export function BatchProgressModal({
                           {getStatusIcon(transaction.status)}
                           <div>
                             <div className="font-medium">
-                              {transaction.type === "approval" ? "Approve" : "Deposit"} USDC on{" "}
+                              {transaction.type === "approval"
+                                ? "Approve"
+                                : transaction.type === "deposit"
+                                ? "Deposit"
+                                : "Withdraw"} USDC on{" "}
                               {getChainName(transaction.chainId)}
                             </div>
                             {transaction.amount && (
@@ -196,9 +202,9 @@ export function BatchProgressModal({
                     <div className="flex items-center">
                       <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                       <div>
-                        <h4 className="font-medium text-green-800">Batch Operation Completed!</h4>
+                        <h4 className="font-medium text-green-800">Operation Completed!</h4>
                         <p className="text-sm text-green-700 mt-1">
-                          All deposits have been successfully processed. Your vault balances will update shortly.
+                          All transactions have been successfully processed. Your vault balances will update shortly.
                         </p>
                       </div>
                     </div>
@@ -210,7 +216,7 @@ export function BatchProgressModal({
                     <div className="flex items-center">
                       <XCircle className="h-5 w-5 text-red-500 mr-3" />
                       <div>
-                        <h4 className="font-medium text-red-800">Batch Operation Failed</h4>
+                        <h4 className="font-medium text-red-800">Operation Failed</h4>
                         <p className="text-sm text-red-700 mt-1">
                           Some transactions failed. You can retry individual transactions or cancel the operation.
                         </p>

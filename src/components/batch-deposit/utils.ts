@@ -9,7 +9,7 @@ type StepStatus =
 
 interface BatchStepLite {
   chainId: number;
-  type: "approval" | "deposit";
+  type: "approval" | "deposit" | "withdraw";
   amount: string;
   status: StepStatus;
 }

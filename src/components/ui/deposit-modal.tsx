@@ -144,6 +144,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
       </div>
     </Modal>
     <BatchProgressModal
+      title="Single Deposit Progress"
       isOpen={showProgressModal}
       onClose={() => {
         // allow close only when done/failed inside the modal
