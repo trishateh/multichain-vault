@@ -6,7 +6,7 @@ export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivEl
   return (
     <div
       className={cn(
-        "animate-pulse rounded-md bg-gray-200",
+        "animate-pulse rounded-md bg-white/10",
         className
       )}
       {...props}
@@ -17,7 +17,7 @@ export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivEl
 // Specific skeleton components for common use cases
 export function BalanceCardSkeleton() {
   return (
-    <div className="border rounded-lg p-4">
+    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
         <Skeleton className="h-5 w-20" />
         <Skeleton className="h-5 w-12" />
@@ -38,11 +38,11 @@ export function BalanceCardSkeleton() {
 
 export function PortfolioSummarySkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="glass-effect rounded-xl p-6">
       <Skeleton className="h-6 w-32 mb-4" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-gray-50 rounded-lg p-4">
+          <div key={i} className="bg-white/5 rounded-xl p-4 border border-white/10">
             <Skeleton className="h-4 w-24 mb-2" />
             <Skeleton className="h-8 w-20" />
           </div>
@@ -54,7 +54,7 @@ export function PortfolioSummarySkeleton() {
 
 export function TransactionSkeleton() {
   return (
-    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+    <div className="flex items-center justify-between p-3 border border-white/10 rounded-xl bg-white/5">
       <div className="flex items-center space-x-3">
         <Skeleton className="w-4 h-4 rounded-full" />
         <div className="min-w-0 flex-1">

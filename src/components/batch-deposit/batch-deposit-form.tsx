@@ -126,7 +126,7 @@ export function BatchDepositForm({ onSubmit, isLoading = false }: BatchDepositFo
   if (!isConnected) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">Please connect your wallet to use batch deposit.</p>
+        <p className="text-slate-400">Please connect your wallet to use batch deposit.</p>
       </div>
     );
   }
@@ -135,10 +135,10 @@ export function BatchDepositForm({ onSubmit, isLoading = false }: BatchDepositFo
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-2xl font-bold text-white mb-2">
           Multi-Chain Batch Deposit
         </h2>
-        <p className="text-gray-600">
+        <p className="text-slate-400">
           Deposit USDC across multiple chains in a single transaction flow
         </p>
       </div>
@@ -154,28 +154,28 @@ export function BatchDepositForm({ onSubmit, isLoading = false }: BatchDepositFo
           return (
             <div
               key={deposit.chainId}
-              className={`border-2 rounded-lg p-4 transition-colors ${
+              className={`border-2 rounded-xl p-4 transition-colors ${
                 error
-                  ? "border-red-300 bg-red-50"
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-red-400/50 bg-red-500/10"
+                  : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
               }`}
             >
               {/* Chain Header */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
                   <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
                       chainColor === "blue"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-purple-100 text-purple-800"
+                        ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                        : "bg-purple-500/20 text-purple-300 border-purple-500/30"
                     }`}
                   >
                     {chainName}
                   </span>
-                  <span className="text-sm text-gray-500">Testnet</span>
+                  <span className="text-sm text-slate-400">Testnet</span>
                 </div>
                 {balance && (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-white">
                     Available: {formatNumber(balance.wallet)} USDC
                   </div>
                 )}
@@ -185,21 +185,21 @@ export function BatchDepositForm({ onSubmit, isLoading = false }: BatchDepositFo
               <div className="space-y-2">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <DollarSign className="h-4 w-4 text-gray-400" />
+                    <DollarSign className="h-4 w-4 text-slate-400" />
                   </div>
                   <input
                     type="text"
                     value={deposit.amount}
                     onChange={(e) => updateAmount(deposit.chainId, e.target.value)}
                     placeholder="0.00"
-                    className={`block w-full pl-9 pr-16 py-2 border rounded-md shadow-sm focus:ring-2 focus:border-transparent text-gray-500 ${
+                    className={`block w-full pl-9 pr-16 py-2 border rounded-xl bg-white/5 focus:ring-2 focus:border-transparent text-white placeholder-slate-400 focus:outline-none transition-colors ${
                       error
-                        ? "border-red-300 focus:ring-red-500"
-                        : "border-gray-300 focus:ring-blue-500"
+                        ? "border-red-400/50 focus:ring-red-500/50"
+                        : "border-white/10 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)]"
                     }`}
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <span className="text-sm text-gray-500">USDC</span>
+                    <span className="text-sm text-slate-400">USDC</span>
                   </div>
                 </div>
 
@@ -208,7 +208,7 @@ export function BatchDepositForm({ onSubmit, isLoading = false }: BatchDepositFo
                   <button
                     type="button"
                     onClick={() => setMaxAmount(deposit.chainId)}
-                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-xs text-[var(--accent-primary)] hover:text-[var(--accent-primary)]/80 font-medium transition-colors"
                   >
                     Max: {formatNumber(balance.max)} USDC
                   </button>
@@ -216,7 +216,7 @@ export function BatchDepositForm({ onSubmit, isLoading = false }: BatchDepositFo
 
                 {/* Error Message */}
                 {error && (
-                  <p className="text-sm text-red-600">{error}</p>
+                  <p className="text-sm text-red-400">{error}</p>
                 )}
               </div>
             </div>
@@ -226,14 +226,14 @@ export function BatchDepositForm({ onSubmit, isLoading = false }: BatchDepositFo
 
       {/* Summary */}
       {totalAmount > 0 && (
-        <div className="bg-gray-50 rounded-lg p-4">
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-gray-900">Total Deposit:</span>
-            <span className="text-lg font-bold text-gray-900">
+            <span className="font-medium text-white">Total Deposit:</span>
+            <span className="text-lg font-bold text-white">
               {formatNumber(totalAmount)} USDC
             </span>
           </div>
-          <div className="mt-2 text-sm text-gray-600">
+          <div className="mt-2 text-sm text-slate-400">
             This will require{" "}
             {deposits.filter((d) => parseFloat(d.amount || "0") > 0).length * 2}{" "}
             transactions (approval + deposit for each chain)
@@ -245,10 +245,10 @@ export function BatchDepositForm({ onSubmit, isLoading = false }: BatchDepositFo
       <button
         onClick={validateAndSubmit}
         disabled={!hasValidAmounts || isLoading}
-        className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-colors ${
+        className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition-all btn-animate ${
           hasValidAmounts && !isLoading
-            ? "bg-blue-600 hover:bg-blue-700 text-white"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] hover:from-[var(--accent-primary)]/80 hover:to-[var(--accent-secondary)]/80 text-white"
+            : "bg-gray-600 text-gray-400 cursor-not-allowed"
         }`}
       >
         {isLoading ? (

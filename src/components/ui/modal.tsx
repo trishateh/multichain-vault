@@ -24,7 +24,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black bg-opacity-25" />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
         </TransitionChild>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -38,17 +38,17 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl glass-effect p-6 text-left align-middle shadow-xl transition-all border border-white/10">
                 <div className="flex items-center justify-between mb-4">
                   <DialogTitle
                     as="h3"
-                    className="text-lg font-medium leading-6 text-gray-900"
+                    className="text-lg font-medium leading-6 text-white"
                   >
                     {title}
                   </DialogTitle>
                   <button
                     type="button"
-                    className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="rounded-md text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-colors"
                     onClick={onClose}
                   >
                     <span className="sr-only">Close</span>

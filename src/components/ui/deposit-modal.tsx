@@ -64,17 +64,17 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
       <div className="space-y-4">
         {/* Chain Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-white mb-2">
             Select Chain
           </label>
           <select
             value={selectedChainId}
             onChange={(e) => setSelectedChainId(Number(e.target.value) as SupportedChainId)}
-            className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-500"
+            className="w-full rounded-xl bg-white/5 border border-white/10 text-white focus:border-[var(--accent-primary)] focus:ring-[var(--accent-primary)] focus:ring-1 focus:outline-none transition-colors"
             disabled={isExecuting}
           >
             {supportedChains.map((chain) => (
-              <option key={chain.id} value={chain.id}>
+              <option key={chain.id} value={chain.id} className="bg-slate-800 text-white">
                 {chain.name}
               </option>
             ))}
@@ -83,7 +83,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
 
         {/* Amount Input */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-white mb-2">
             Amount (USDC)
           </label>
           <div className="relative">
@@ -92,7 +92,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-16 text-gray-700"
+              className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-400 focus:border-[var(--accent-primary)] focus:ring-[var(--accent-primary)] focus:ring-1 focus:outline-none pr-16 transition-colors"
               disabled={isExecuting}
               step="0.01"
               min="0"
@@ -101,21 +101,21 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
             <button
               type="button"
               onClick={handleMaxClick}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-sm text-blue-600 hover:text-blue-700"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-sm text-[var(--accent-primary)] hover:text-[var(--accent-primary)]/80 transition-colors"
               disabled={isExecuting}
             >
               MAX
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             Available: {formatNumber(maxAmount)} USDC
           </p>
         </div>
 
         {/* Current Network Warning */}
         {currentChainId !== selectedChainId && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-            <p className="text-sm text-yellow-800">
+          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-3">
+            <p className="text-sm text-orange-300">
               You&apos;ll be prompted to switch to {selectedChain?.name} network.
             </p>
           </div>
@@ -126,7 +126,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="flex-1 py-2 px-4 border border-white/20 rounded-xl text-sm font-medium text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] cursor-pointer transition-colors"
             disabled={isExecuting}
           >
             Cancel
@@ -136,7 +136,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
             type="button"
             onClick={handleStart}
             disabled={!isValidAmount || isExecuting || !isConnected}
-            className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="flex-1 py-2 px-4 border border-transparent rounded-xl text-sm font-medium text-white bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] hover:from-[var(--accent-primary)]/80 hover:to-[var(--accent-secondary)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all btn-animate"
           >
             {isExecuting ? 'Processing...' : 'Approve & Deposit'}
           </button>
