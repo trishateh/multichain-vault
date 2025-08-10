@@ -28,28 +28,28 @@ export function BatchProgressModal({
   const getStatusIcon = (status: TransactionStatus["status"]) => {
     switch (status) {
       case "completed":
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-green-400" />;
       case "failed":
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <XCircle className="h-5 w-5 text-red-400" />;
       case "in_progress":
         return (
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-primary)]"></div>
         );
       default:
-        return <Clock className="h-5 w-5 text-gray-400" />;
+        return <Clock className="h-5 w-5 text-slate-400" />;
     }
   };
 
   const getStatusColor = (status: TransactionStatus["status"]) => {
     switch (status) {
       case "completed":
-        return "text-green-700 bg-green-50";
+        return "text-green-300 bg-green-500/10 border-green-500/20";
       case "failed":
-        return "text-red-700 bg-red-50";
+        return "text-red-300 bg-red-500/10 border-red-500/20";
       case "in_progress":
-        return "text-blue-700 bg-blue-50";
+        return "text-blue-300 bg-blue-500/10 border-blue-500/20";
       default:
-        return "text-gray-700 bg-gray-50";
+        return "text-slate-300 bg-white/5 border-white/10";
     }
   };
 
@@ -79,7 +79,7 @@ export function BatchProgressModal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black bg-opacity-25" />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -93,36 +93,36 @@ export function BatchProgressModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl glass-effect p-6 text-left align-middle shadow-xl transition-all border border-white/10">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
+                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-white">
                       {title || "Operation Progress"}
                     </Dialog.Title>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-slate-400">
                       Step {Math.min(batchOperation.currentStep, batchOperation.totalSteps)} of {batchOperation.totalSteps}
                     </p>
                   </div>
                   {canClose && (
                     <button
                       onClick={onClose}
-                      className="rounded-md p-1 hover:bg-gray-100 transition-colors"
+                      className="rounded-md p-1 hover:bg-white/10 transition-colors"
                     >
-                      <X className="h-5 w-5 text-gray-400" />
+                      <X className="h-5 w-5 text-slate-400 hover:text-white" />
                     </button>
                   )}
                 </div>
 
                 {/* Progress Bar */}
                 <div className="mb-6">
-                  <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                  <div className="flex items-center justify-between text-sm text-slate-300 mb-2">
                     <span>Overall Progress</span>
                     <span>{Math.round(getProgressPercentage())}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-white/10 rounded-full h-2">
                     <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                      className="bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] h-2 rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${getProgressPercentage()}%` }}
                     />
                   </div>
@@ -133,13 +133,13 @@ export function BatchProgressModal({
                   {batchOperation.transactions.map((transaction) => (
                     <div
                       key={`${transaction.chainId}-${transaction.type}`}
-                      className={`p-4 rounded-lg border ${getStatusColor(transaction.status)}`}
+                      className={`p-4 rounded-xl border ${getStatusColor(transaction.status)}`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           {getStatusIcon(transaction.status)}
                           <div>
-                            <div className="font-medium">
+                            <div className="font-medium text-white">
                               {transaction.type === "approval"
                                 ? "Approve"
                                 : transaction.type === "deposit"
@@ -148,7 +148,7 @@ export function BatchProgressModal({
                               {getChainName(transaction.chainId)}
                             </div>
                             {transaction.amount && (
-                              <div className="text-sm opacity-75">
+                              <div className="text-sm text-slate-400">
                                 Amount: {formatNumber(parseFloat(transaction.amount))} USDC
                               </div>
                             )}
@@ -160,7 +160,7 @@ export function BatchProgressModal({
                           {transaction.status === "failed" && (
                             <button
                               onClick={() => onRetryTransaction(transaction.chainId, transaction.type)}
-                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                              className="inline-flex items-center px-3 py-1 border border-white/20 shadow-sm text-xs font-medium rounded-lg text-white bg-white/5 hover:bg-white/10 transition-colors"
                             >
                               <RotateCcw className="h-3 w-3 mr-1" />
                               Retry
@@ -177,7 +177,7 @@ export function BatchProgressModal({
                               }/tx/${transaction.hash}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:text-blue-700"
+                              className="text-xs text-[var(--accent-primary)] hover:text-[var(--accent-primary)]/80 transition-colors"
                             >
                               View on Explorer
                             </a>
@@ -188,8 +188,8 @@ export function BatchProgressModal({
                       {/* Error Message */}
                       {transaction.error && (
                         <div className="mt-2 flex items-start space-x-2">
-                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                          <p className="text-sm text-red-700">{transaction.error}</p>
+                          <AlertCircle className="h-4 w-4 text-red-400 mt-0.5" />
+                          <p className="text-sm text-red-300">{transaction.error}</p>
                         </div>
                       )}
                     </div>
@@ -198,12 +198,12 @@ export function BatchProgressModal({
 
                 {/* Status Messages */}
                 {batchOperation.status === "completed" && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-4">
                     <div className="flex items-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
                       <div>
-                        <h4 className="font-medium text-green-800">Operation Completed!</h4>
-                        <p className="text-sm text-green-700 mt-1">
+                        <h4 className="font-medium text-green-300">Operation Completed!</h4>
+                        <p className="text-sm text-green-400 mt-1">
                           All transactions have been successfully processed. Your vault balances will update shortly.
                         </p>
                       </div>
@@ -212,12 +212,12 @@ export function BatchProgressModal({
                 )}
 
                 {batchOperation.status === "failed" && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4">
                     <div className="flex items-center">
-                      <XCircle className="h-5 w-5 text-red-500 mr-3" />
+                      <XCircle className="h-5 w-5 text-red-400 mr-3" />
                       <div>
-                        <h4 className="font-medium text-red-800">Operation Failed</h4>
-                        <p className="text-sm text-red-700 mt-1">
+                        <h4 className="font-medium text-red-300">Operation Failed</h4>
+                        <p className="text-sm text-red-400 mt-1">
                           Some transactions failed. You can retry individual transactions or cancel the operation.
                         </p>
                       </div>
@@ -230,7 +230,7 @@ export function BatchProgressModal({
                   {canCancel && (
                     <button
                       onClick={onCancelBatch}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      className="px-4 py-2 border border-white/20 rounded-xl text-sm font-medium text-white hover:bg-white/5 transition-colors"
                     >
                       Cancel Remaining
                     </button>
@@ -239,7 +239,7 @@ export function BatchProgressModal({
                   {canClose && (
                     <button
                       onClick={onClose}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
+                      className="px-4 py-2 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] hover:from-[var(--accent-primary)]/80 hover:to-[var(--accent-secondary)]/80 text-white text-sm font-medium rounded-xl btn-animate"
                     >
                       Close
                     </button>
