@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount, useChainId, useSwitchChain } from 'wagmi'
+import { useAccount, useChainId } from 'wagmi'
 import { Modal } from './modal'
-import { useVaultOperations } from '@/hooks/useVaultOperations'
 import { useBalances } from '@/hooks/useBalances'
 import { supportedChains } from '@/lib/config/chains'
 import { SupportedChainId } from '@/lib/config/contracts'
 import { formatNumber } from '@/lib/utils'
+import { BatchProgressModal } from '@/components/batch-deposit/batch-progress-modal'
+import { useBatchOperations } from '@/hooks/useBatchOperations'
+import { buildBatchOperationFromSteps } from '@/components/batch-deposit/utils'
 
 interface DepositModalProps {
   isOpen: boolean
@@ -17,15 +19,22 @@ interface DepositModalProps {
 export function DepositModal({ isOpen, onClose }: DepositModalProps) {
   const { isConnected } = useAccount()
   const currentChainId = useChainId()
-  const { switchChain } = useSwitchChain()
   const { balances } = useBalances()
-  const { depositWithApproval, isLoading } = useVaultOperations()
+  const {
+    isExecuting,
+    batchFlowState,
+    batchSteps,
+    currentStepIndex,
+    executeBatchOperation,
+    cancelBatch,
+    retryStep,
+  } = useBatchOperations()
   
   const [selectedChainId, setSelectedChainId] = useState<SupportedChainId>(
     supportedChains[0].id as SupportedChainId
   )
   const [amount, setAmount] = useState('')
-  const [step, setStep] = useState<'input' | 'processing' | 'completed'>('input')
+  const [showProgressModal, setShowProgressModal] = useState(false)
 
   const selectedChain = supportedChains.find(chain => chain.id === selectedChainId)
   const selectedBalance = balances.find(balance => balance.chainId === selectedChainId)
@@ -35,36 +44,22 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
     setAmount(maxAmount)
   }
 
-  const handleDepositFlow = async () => {
-    if (currentChainId !== selectedChainId) {
-      try {
-        await switchChain({ chainId: selectedChainId })
-      } catch (error) {
-        console.error('Failed to switch chain:', error)
-        return
-      }
-    }
-
-    setStep('processing')
-    const result = await depositWithApproval(selectedChainId, amount)
-    
-    if (result.success) {
-      setStep('completed')
-      // Close modal after a short delay to show success
-      setTimeout(() => {
-        onClose()
-        setStep('input')
-        setAmount('')
-      }, 2000)
-    } else {
-      // Reset to input on failure
-      setStep('input')
-    }
+  const handleStart = async () => {
+    setShowProgressModal(true)
+    onClose()
+    await executeBatchOperation([{ chainId: selectedChainId, amount }])
   }
 
   const isValidAmount = amount && parseFloat(amount) > 0 && parseFloat(amount) <= parseFloat(maxAmount)
 
+  const mockBatchOperation = buildBatchOperationFromSteps(
+    batchSteps as any,
+    batchFlowState as any,
+    currentStepIndex
+  )
+
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} title="Deposit USDC">
       <div className="space-y-4">
         {/* Chain Selection */}
@@ -76,7 +71,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
             value={selectedChainId}
             onChange={(e) => setSelectedChainId(Number(e.target.value) as SupportedChainId)}
             className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-500"
-            disabled={isLoading}
+            disabled={isExecuting}
           >
             {supportedChains.map((chain) => (
               <option key={chain.id} value={chain.id}>
@@ -98,7 +93,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-16 text-gray-700"
-              disabled={isLoading}
+              disabled={isExecuting}
               step="0.01"
               min="0"
               max={maxAmount}
@@ -107,7 +102,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
               type="button"
               onClick={handleMaxClick}
               className="absolute right-2 top-1/2 transform -translate-y-1/2 text-sm text-blue-600 hover:text-blue-700"
-              disabled={isLoading}
+              disabled={isExecuting}
             >
               MAX
             </button>
@@ -132,43 +127,38 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
             type="button"
             onClick={onClose}
             className="flex-1 py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            disabled={isLoading}
+            disabled={isExecuting}
           >
             Cancel
           </button>
           
-          {step === 'input' && (
-            <button
-              type="button"
-              onClick={handleDepositFlow}
-              disabled={!isValidAmount || isLoading || !isConnected}
-              className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {isLoading ? 'Processing...' : 'Approve & Deposit'}
-            </button>
-          )}
-          
-          {step === 'processing' && (
-            <button
-              type="button"
-              disabled
-              className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 opacity-50 cursor-not-allowed"
-            >
-              Processing...
-            </button>
-          )}
-          
-          {step === 'completed' && (
-            <button
-              type="button"
-              disabled
-              className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 opacity-50 cursor-not-allowed"
-            >
-              ✅ Completed
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleStart}
+            disabled={!isValidAmount || isExecuting || !isConnected}
+            className="flex-1 py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {isExecuting ? 'Processing...' : 'Approve & Deposit'}
+          </button>
         </div>
       </div>
     </Modal>
+    <BatchProgressModal
+      isOpen={showProgressModal}
+      onClose={() => {
+        // allow close only when done/failed inside the modal
+        setShowProgressModal(false)
+        setAmount('')
+      }}
+      batchOperation={mockBatchOperation}
+      onRetryTransaction={(chainId, type) => {
+        retryStep(chainId as SupportedChainId, type as 'approval' | 'deposit')
+      }}
+      onCancelBatch={() => {
+        cancelBatch()
+        setShowProgressModal(false)
+      }}
+    />
+    </>
   )
 }

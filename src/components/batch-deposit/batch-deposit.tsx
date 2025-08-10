@@ -5,6 +5,7 @@ import { BatchDepositForm } from "./batch-deposit-form";
 import { BatchProgressModal } from "./batch-progress-modal";
 import { useBatchOperations } from "@/hooks/useBatchOperations";
 import { SupportedChainId } from "@/lib/config/contracts";
+import { buildBatchOperationFromSteps } from "./utils";
 
 interface BatchDepositInput {
   chainId: SupportedChainId;
@@ -40,20 +41,11 @@ export function BatchDeposit() {
     setShowProgressModal(false);
   };
 
-  // Create a mock BatchOperation for the modal (temporary until we update the modal)
-  const mockBatchOperation = batchSteps.length > 0 ? {
-    id: `batch-${Date.now()}`,
-    deposits: [],
-    status: (batchFlowState === 'executing' ? 'in_progress' : batchFlowState) as any,
-    currentStep: currentStepIndex + 1,
-    totalSteps: batchSteps.length,
-    transactions: batchSteps.map(step => ({
-      chainId: step.chainId,
-      type: step.type,
-      status: (step.status === 'wallet-pending' || step.status === 'confirming') ? 'in_progress' : step.status as any,
-      amount: step.amount,
-    })),
-  } : null;
+  const mockBatchOperation = buildBatchOperationFromSteps(
+    batchSteps as any,
+    batchFlowState as any,
+    currentStepIndex
+  );
 
   return (
     <>
