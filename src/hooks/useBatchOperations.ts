@@ -257,7 +257,8 @@ export function useBatchOperations() {
 
       try {
         // Switch to the target chain if needed
-        if (currentChainId !== currentStep.chainId) {
+        // Handle case where currentChainId might be undefined on first load
+        if (!currentChainId || currentChainId !== currentStep.chainId) {
           toast.loading(`Switching to ${chainName}...`, {
             id: `switch-${currentStepIndex}`,
           });
