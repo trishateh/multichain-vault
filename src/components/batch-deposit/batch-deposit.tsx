@@ -22,6 +22,7 @@ export function BatchDeposit() {
     executeBatchOperation,
     cancelBatch,
     retryStep,
+    forceReset,
   } = useBatchOperations();
 
   const handleSubmit = async (deposits: BatchDepositInput[]) => {
@@ -33,6 +34,8 @@ export function BatchDeposit() {
     // Only allow closing if batch is completed or failed
     if (batchFlowState === "completed" || batchFlowState === "failed" || batchFlowState === "idle") {
       setShowProgressModal(false);
+      // Reset the batch operation state to allow fresh start
+      forceReset();
     }
   };
 
