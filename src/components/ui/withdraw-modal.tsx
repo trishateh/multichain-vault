@@ -10,6 +10,7 @@ import { formatNumber } from '@/lib/utils'
 import { BatchProgressModal } from '@/components/batch-deposit/batch-progress-modal'
 import { useUnifiedOperations } from '@/hooks/useUnifiedOperations'
 import { buildBatchOperationFromSteps } from '@/components/batch-deposit/utils'
+import { CustomSelect } from './custom-select'
 
 interface WithdrawModalProps {
   isOpen: boolean
@@ -87,21 +88,16 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
       <div className="space-y-4">
         {/* Chain Selection */}
         <div>
-          <label className="block text-sm font-medium text-white mb-2">
+          <label id="select-label" className="block text-sm font-medium text-white mb-2">
             Select Chain
           </label>
-          <select
+          <CustomSelect
             value={selectedChainId}
-            onChange={(e) => setSelectedChainId(Number(e.target.value) as SupportedChainId)}
-            className="w-full rounded-xl bg-white/5 border border-white/10 text-white focus:border-[var(--accent-primary)] focus:ring-[var(--accent-primary)] focus:ring-1 focus:outline-none transition-colors"
+            options={supportedChains.map(chain => ({ value: chain.id, label: chain.name }))}
+            onChange={(value) => setSelectedChainId(Number(value) as SupportedChainId)}
             disabled={isExecuting}
-          >
-            {supportedChains.map((chain) => (
-              <option key={chain.id} value={chain.id} className="bg-slate-800 text-white">
-                {chain.name}
-              </option>
-            ))}
-          </select>
+            placeholder="Select a chain"
+          />
         </div>
 
         {/* Amount Input */}
@@ -115,7 +111,7 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-400 focus:border-[var(--accent-primary)] focus:ring-[var(--accent-primary)] focus:ring-1 focus:outline-none pr-16 transition-colors"
+              className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-400 focus:border-[var(--accent-primary)] focus:ring-[var(--accent-primary)] focus:ring-1 focus:outline-none pr-16 transition-colors py-3 px-4 text-base md:text-sm min-h-[48px] md:min-h-[40px]"
               disabled={isExecuting}
               step="0.01"
               min="0"

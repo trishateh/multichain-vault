@@ -28,7 +28,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         </TransitionChild>
 
         <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
+          <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
             <TransitionChild
               as={Fragment}
               enter="ease-out duration-300"
@@ -38,7 +38,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl glass-effect p-6 text-left align-middle shadow-xl transition-all border border-white/10">
+              <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl glass-effect p-4 sm:p-6 text-left align-middle shadow-xl transition-all border border-white/10">
                 <div className="flex items-center justify-between mb-4">
                   <DialogTitle
                     as="h3"

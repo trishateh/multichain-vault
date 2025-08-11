@@ -77,3 +77,30 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(0, 212, 170, 0.3);
 }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  /* Ensure select elements are properly styled on mobile */
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  
+  /* Improve touch targets */
+  input, select, button {
+    min-height: 48px;
+  }
+  
+  /* Fix select background on mobile browsers */
+  select:focus {
+    outline: none;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  input, select {
+    min-height: 44px;
+  }
+}
