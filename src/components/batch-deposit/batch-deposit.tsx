@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BatchDepositForm } from "./batch-deposit-form";
 import { BatchProgressModal } from "./batch-progress-modal";
-import { useBatchOperations } from "@/hooks/useBatchOperations";
+import { useUnifiedOperations } from "@/hooks/useUnifiedOperations";
 import { SupportedChainId } from "@/lib/config/contracts";
 import { buildBatchOperationFromSteps } from "./utils";
 
@@ -19,15 +19,15 @@ export function BatchDeposit() {
     batchFlowState,
     batchSteps,
     currentStepIndex,
-    executeBatchOperation,
+    executeBatchDeposit,
     cancelBatch,
     retryStep,
     forceReset,
-  } = useBatchOperations();
+  } = useUnifiedOperations();
 
   const handleSubmit = async (deposits: BatchDepositInput[]) => {
     setShowProgressModal(true);
-    await executeBatchOperation(deposits);
+    await executeBatchDeposit(deposits);
   };
 
   const handleCloseModal = () => {

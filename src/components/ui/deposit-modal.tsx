@@ -7,8 +7,8 @@ import { useBalances } from '@/hooks/useBalances'
 import { supportedChains } from '@/lib/config/chains'
 import { SupportedChainId } from '@/lib/config/contracts'
 import { formatNumber } from '@/lib/utils'
+import { useUnifiedOperations } from '@/hooks/useUnifiedOperations'
 import { BatchProgressModal } from '@/components/batch-deposit/batch-progress-modal'
-import { useBatchOperations } from '@/hooks/useBatchOperations'
 import { buildBatchOperationFromSteps } from '@/components/batch-deposit/utils'
 
 interface DepositModalProps {
@@ -21,21 +21,22 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
   const currentChainId = useChainId()
   const { balances } = useBalances()
   const {
+    executeSingleDeposit,
     isExecuting,
     batchFlowState,
     batchSteps,
     currentStepIndex,
-    executeBatchOperation,
     cancelBatch,
+    forceReset,
     retryStep,
-  } = useBatchOperations()
+  } = useUnifiedOperations()
   
   const [selectedChainId, setSelectedChainId] = useState<SupportedChainId>(
     supportedChains[0].id as SupportedChainId
   )
   const [amount, setAmount] = useState('')
   const [showProgressModal, setShowProgressModal] = useState(false)
-
+  
   const selectedChain = supportedChains.find(chain => chain.id === selectedChainId)
   const selectedBalance = balances.find(balance => balance.chainId === selectedChainId)
   const maxAmount = selectedBalance?.walletBalance || '0'
@@ -47,7 +48,29 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
   const handleStart = async () => {
     setShowProgressModal(true)
     onClose()
-    await executeBatchOperation([{ chainId: selectedChainId, amount }])
+    await executeSingleDeposit(selectedChainId, amount)
+  }
+
+  const handleClose = () => {
+    // Reset form when modal is closed
+    setAmount('')
+    onClose()
+  }
+
+  const handleCloseProgress = () => {
+    // Only allow closing progress modal if batch is completed or failed
+    if (batchFlowState === "completed" || batchFlowState === "failed" || batchFlowState === "idle") {
+      setShowProgressModal(false)
+      setAmount('')
+      // Reset the batch operation state to allow fresh start
+      forceReset()
+    }
+  }
+
+  const handleCancelBatch = () => {
+    cancelBatch()
+    setShowProgressModal(false)
+    setAmount('')
   }
 
   const isValidAmount = amount && parseFloat(amount) > 0 && parseFloat(amount) <= parseFloat(maxAmount)
@@ -60,7 +83,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
 
   return (
     <>
-    <Modal isOpen={isOpen} onClose={onClose} title="Deposit USDC">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Deposit USDC">
       <div className="space-y-4">
         {/* Chain Selection */}
         <div>
@@ -125,7 +148,7 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
         <div className="flex space-x-3 pt-4">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 py-2 px-4 border border-white/20 rounded-xl text-sm font-medium text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] cursor-pointer transition-colors"
             disabled={isExecuting}
           >
@@ -143,22 +166,16 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
         </div>
       </div>
     </Modal>
+    
     <BatchProgressModal
       title="Single Deposit Progress"
       isOpen={showProgressModal}
-      onClose={() => {
-        // allow close only when done/failed inside the modal
-        setShowProgressModal(false)
-        setAmount('')
-      }}
+      onClose={handleCloseProgress}
       batchOperation={mockBatchOperation}
       onRetryTransaction={(chainId, type) => {
         retryStep(chainId as SupportedChainId, type as 'approval' | 'deposit')
       }}
-      onCancelBatch={() => {
-        cancelBatch()
-        setShowProgressModal(false)
-      }}
+      onCancelBatch={handleCancelBatch}
     />
     </>
   )

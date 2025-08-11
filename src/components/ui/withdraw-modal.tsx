@@ -8,7 +8,8 @@ import { supportedChains } from '@/lib/config/chains'
 import { SupportedChainId } from '@/lib/config/contracts'
 import { formatNumber } from '@/lib/utils'
 import { BatchProgressModal } from '@/components/batch-deposit/batch-progress-modal'
-import { useBatchOperations } from '@/hooks/useBatchOperations'
+import { useUnifiedOperations } from '@/hooks/useUnifiedOperations'
+import { buildBatchOperationFromSteps } from '@/components/batch-deposit/utils'
 
 interface WithdrawModalProps {
   isOpen: boolean
@@ -20,14 +21,15 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
   const currentChainId = useChainId()
   const { balances } = useBalances()
   const {
+    executeSingleWithdrawal,
     isExecuting,
     batchFlowState,
     batchSteps,
     currentStepIndex,
-    executeWithdrawOperation,
     cancelBatch,
     retryStep,
-  } = useBatchOperations()
+    forceReset,
+  } = useUnifiedOperations()
   
   const [selectedChainId, setSelectedChainId] = useState<SupportedChainId>(
     supportedChains[0].id as SupportedChainId
@@ -46,14 +48,42 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
   const handleStart = async () => {
     setShowProgressModal(true)
     onClose()
-    await executeWithdrawOperation({ chainId: selectedChainId, amount })
+    await executeSingleWithdrawal(selectedChainId, amount)
+  }
+
+  const handleClose = () => {
+    // Reset form when modal is closed
+    setAmount('')
+    onClose()
+  }
+
+  const handleCloseProgress = () => {
+    // Only allow closing progress modal if batch is completed or failed
+    if (batchFlowState === "completed" || batchFlowState === "failed" || batchFlowState === "idle") {
+      setShowProgressModal(false)
+      setAmount('')
+      // Reset the batch operation state to allow fresh start
+      forceReset()
+    }
+  }
+
+  const handleCancelBatch = () => {
+    cancelBatch()
+    setShowProgressModal(false)
+    setAmount('')
   }
 
   const isValidAmount = amount && parseFloat(amount) > 0 && parseFloat(amount) <= parseFloat(maxAmount)
 
+  const mockBatchOperation = buildBatchOperationFromSteps(
+    batchSteps as any,
+    batchFlowState as any,
+    currentStepIndex
+  )
+
   return (
     <>
-    <Modal isOpen={isOpen} onClose={onClose} title="Withdraw USDC">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Withdraw USDC">
       <div className="space-y-4">
         {/* Chain Selection */}
         <div>
@@ -118,7 +148,7 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
         <div className="flex space-x-3 pt-4">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 py-2 px-4 border border-white/20 rounded-xl text-sm font-medium text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] cursor-pointer transition-colors"
             disabled={isExecuting}
           >
@@ -138,31 +168,12 @@ export function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
     <BatchProgressModal
       title="Withdraw Progress"
       isOpen={showProgressModal}
-      onClose={() => {
-        // allow close only when done/failed inside the modal
-        setShowProgressModal(false)
-        setAmount('')
-      }}
-      batchOperation={{
-        id: 'withdraw-single',
-        deposits: [],
-        status: (batchFlowState === 'executing' ? 'in_progress' : batchFlowState) as any,
-        currentStep: currentStepIndex + 1,
-        totalSteps: batchSteps.length,
-        transactions: batchSteps.map((s) => ({
-          chainId: s.chainId,
-          type: s.type,
-          status: s.status === 'wallet-pending' || s.status === 'confirming' ? 'in_progress' : (s.status as any),
-          amount: s.amount,
-        }))
-      }}
+      onClose={handleCloseProgress}
+      batchOperation={mockBatchOperation}
       onRetryTransaction={(chainId, type) => {
-        retryStep(chainId as SupportedChainId, type as any)
+        retryStep(chainId as SupportedChainId, type as 'withdraw')
       }}
-      onCancelBatch={() => {
-        cancelBatch()
-        setShowProgressModal(false)
-      }}
+      onCancelBatch={handleCancelBatch}
     />
     </>
   )
