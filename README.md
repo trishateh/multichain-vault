@@ -124,6 +124,7 @@ src/
 1. **Sepolia ETH**: https://sepoliafaucet.com/
 2. **Sei Testnet**: https://atlantic-2.app.sei.io/faucet
 3. **Test USDC**: https://faucet.circle.com/
+4. **Transfer Testnet USDC Crosschain**: https://github.com/trishateh/cctp-v2-transfer
 
 ### Test the Application
 
